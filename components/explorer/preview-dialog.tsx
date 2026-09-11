@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { Download, ExternalLink, File, Link2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -7,7 +8,19 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { useConfigData } from "@/hooks/use-config";
-import { assetUrl, downloadUrl, previewUrl, type ObjectItem } from "@/lib/api";
+import {
+  assetUrl,
+  downloadUrl,
+  fetchPreviewText,
+  hasFileExtension,
+  isImageFile,
+  isPdfFile,
+  isTextFile,
+  MAX_TEXT_PREVIEW_BYTES,
+  previewUrl,
+  sniffObject,
+  type ObjectItem,
+} from "@/lib/api";
 import { copyText } from "@/lib/clipboard";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -28,6 +41,41 @@ function Lightbox({ item, onClose }: { item: ObjectItem; onClose: () => void }) 
   const cdnBaseUrl = useConfigData()?.cdnBaseUrl;
   const [loaded, setLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+
+  // Files without an extension are sniffed server-side (magic bytes) to
+  // learn their kind; the query cache is shared with the gallery.
+  const needsSniff = !hasFileExtension(item.name) && item.size > 0;
+  const sniffQuery = useQuery({
+    queryKey: ["sniff", item.key],
+    queryFn: () => sniffObject(item.key),
+    enabled: needsSniff,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const kind: "image" | "pdf" | "text" | "unknown" = isImageFile(item.name)
+    ? "image"
+    : isPdfFile(item.name)
+      ? "pdf"
+      : isTextFile(item.name)
+        ? "text"
+        : sniffQuery.data
+          ? sniffQuery.data.image
+            ? "image"
+            : sniffQuery.data.pdf
+              ? "pdf"
+              : sniffQuery.data.text
+                ? "text"
+                : "unknown"
+          : "image";
+
+  const textQuery = useQuery({
+    queryKey: ["preview-text", item.key],
+    queryFn: () => fetchPreviewText(item.key),
+    enabled:
+      kind === "text" &&
+      item.size <= MAX_TEXT_PREVIEW_BYTES,
+    staleTime: 5 * 60 * 1000,
+  });
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -119,19 +167,45 @@ function Lightbox({ item, onClose }: { item: ObjectItem; onClose: () => void }) 
       </div>
 
       <div className="flex min-h-0 flex-1 cursor-zoom-out items-center justify-center p-4">
-        {imageFailed ? (
-          <div
-            className="flex cursor-default flex-col items-center gap-2 text-center"
+        {kind === "pdf" ? (
+          <iframe
+            src={previewUrl(item.key)}
+            title={item.name}
+            className="size-full rounded-xl bg-white"
             onClick={(event) => event.stopPropagation()}
-          >
-            <File className="size-12 text-white/40" />
-            <p className="text-sm font-medium text-white">
-              No preview available
-            </p>
-            <p className="text-xs text-white/60">
-              This file cannot be displayed in the browser
-            </p>
-          </div>
+          />
+        ) : kind === "text" ? (
+          item.size > MAX_TEXT_PREVIEW_BYTES ? (
+            <Fallback
+              title="Text file too large to preview"
+              hint={`Files over ${formatBytes(MAX_TEXT_PREVIEW_BYTES)} can't be shown inline`}
+            />
+          ) : textQuery.isLoading ? (
+            <p className="text-sm text-white/60">Loading…</p>
+          ) : textQuery.isError ? (
+            <Fallback
+              title="Couldn't load the file"
+              hint={
+                textQuery.error instanceof Error
+                  ? textQuery.error.message
+                  : "Unknown error"
+              }
+            />
+          ) : (
+            <div
+              className="max-h-full w-full max-w-4xl cursor-default overflow-auto rounded-xl bg-white p-4 text-left"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <pre className="whitespace-pre-wrap break-words font-mono text-sm text-neutral-900">
+                {textQuery.data}
+              </pre>
+            </div>
+          )
+        ) : imageFailed ? (
+          <Fallback
+            title="No preview available"
+            hint="This file cannot be displayed in the browser"
+          />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element -- proxied S3 object URL
           <img
@@ -149,5 +223,18 @@ function Lightbox({ item, onClose }: { item: ObjectItem; onClose: () => void }) 
       </div>
     </div>,
     document.body,
+  );
+}
+
+function Fallback({ title, hint }: { title: string; hint: string }) {
+  return (
+    <div
+      className="flex cursor-default flex-col items-center gap-2 text-center"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <File className="size-12 text-white/40" />
+      <p className="text-sm font-medium text-white">{title}</p>
+      <p className="text-xs text-white/60">{hint}</p>
+    </div>
   );
 }

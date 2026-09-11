@@ -1,5 +1,5 @@
 /**
- * Detects common image formats from magic bytes.
+ * Detects common file formats from magic bytes.
  * The first 512 bytes of a file are enough for all supported formats.
  */
 export function sniffImageMimeType(buf: Buffer): string | null {
@@ -50,4 +50,19 @@ export function sniffImageMimeType(buf: Buffer): string | null {
     return "image/svg+xml";
   }
   return null;
+}
+
+export function isPdfBuffer(buf: Buffer): boolean {
+  return buf.length >= 5 && buf.toString("ascii", 0, 5) === "%PDF-";
+}
+
+/** No NUL bytes and no control codes other than tab/CR/LF/FF. */
+export function looksLikePlainText(buf: Buffer): boolean {
+  if (buf.length === 0) return true;
+  for (const byte of buf) {
+    if (byte === 0x00) return false;
+    if (byte < 0x09) return false;
+    if (byte > 0x0d && byte < 0x20) return false;
+  }
+  return true;
 }

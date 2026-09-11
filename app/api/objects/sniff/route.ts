@@ -4,7 +4,11 @@ import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { type NextRequest } from "next/server";
 
 import { apiErrorResponse, HttpError } from "@/lib/api-error";
-import { sniffImageMimeType } from "@/lib/image-sniff";
+import {
+  isPdfBuffer,
+  looksLikePlainText,
+  sniffImageMimeType,
+} from "@/lib/mime-sniff";
 import { assertKeyInRoot, getBucket, getS3Client } from "@/lib/s3";
 
 export const runtime = "nodejs";
@@ -14,8 +18,8 @@ const SNIFF_BYTES = 512;
 
 /**
  * Reads the first bytes of an object (Range request) and reports whether it
- * is an image, detected from magic bytes. Used by the gallery to preview
- * image files that have no extension.
+ * is an image, PDF or plain text, detected from magic bytes. Used by the
+ * gallery and the preview lightbox for files with no extension.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -45,11 +49,12 @@ export async function GET(request: NextRequest) {
     }
     body.destroy();
 
-    const mimeType = sniffImageMimeType(
-      Buffer.concat(chunks).subarray(0, SNIFF_BYTES),
-    );
+    const head = Buffer.concat(chunks).subarray(0, SNIFF_BYTES);
+    const mimeType = sniffImageMimeType(head);
+    const pdf = mimeType === null && isPdfBuffer(head);
+    const text = mimeType === null && !pdf && looksLikePlainText(head);
     return Response.json(
-      { image: mimeType !== null, mimeType },
+      { image: mimeType !== null, pdf, text, mimeType },
       { headers: { "Cache-Control": "private, max-age=300" } },
     );
   } catch (error) {

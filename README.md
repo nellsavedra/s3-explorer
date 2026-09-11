@@ -6,9 +6,11 @@ download, rename and delete objects. It has a list view and a gallery view
 ("Load more" over S3 continuation tokens), server-side filename search and
 bulk download (multi-select files and get a single ZIP, streamed from S3
 without recompression) and bulk delete (multi-select files and remove them
-in one S3 batch delete). Images without a file extension are
-detected by sniffing their magic bytes (`GET /api/objects/sniff`, a 512-byte
-range request), so they preview correctly too. The UI is 100% client-side;
+in one S3 batch delete). The preview lightbox shows images, PDFs (the
+browser's native viewer) and plain-text files (up to 2 MB). Files without a
+file extension are detected by sniffing their magic bytes
+(`GET /api/objects/sniff`, a 512-byte range request), so they preview
+correctly too. The UI is 100% client-side;
 all S3 operations go through Next.js API route handlers, so credentials never
 leave the server.
 

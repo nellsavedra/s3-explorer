@@ -179,12 +179,43 @@ export function isImageFile(name: string): boolean {
   return IMAGE_EXTENSIONS.has(ext);
 }
 
+const TEXT_EXTENSIONS = new Set([
+  "txt",
+  "md",
+  "markdown",
+  "json",
+  "csv",
+  "tsv",
+  "log",
+  "xml",
+  "yml",
+  "yaml",
+  "toml",
+  "ini",
+  "cfg",
+  "conf",
+  "srt",
+  "vtt",
+]);
+
+export function isPdfFile(name: string): boolean {
+  return name.split(".").pop()?.toLowerCase() === "pdf";
+}
+
+export function isTextFile(name: string): boolean {
+  const ext = name.split(".").pop()?.toLowerCase() ?? "";
+  return TEXT_EXTENSIONS.has(ext);
+}
+
 export function hasFileExtension(name: string): boolean {
   return /\.[a-z0-9]+$/i.test(name);
 }
 
 export interface SniffResult {
   image: boolean;
+  /** Only present for responses from newer sniff endpoints. */
+  pdf?: boolean;
+  text?: boolean;
   mimeType: string | null;
 }
 
@@ -193,6 +224,15 @@ export async function sniffObject(key: string): Promise<SniffResult> {
   const response = await fetch(`/api/objects/sniff?key=${encodeURIComponent(key)}`);
   await throwIfNotOk(response);
   return response.json();
+}
+
+/** Cap for fetching a text file's content into the preview lightbox. */
+export const MAX_TEXT_PREVIEW_BYTES = 2 * 1024 * 1024;
+
+export async function fetchPreviewText(key: string): Promise<string> {
+  const response = await fetch(previewUrl(key));
+  await throwIfNotOk(response);
+  return response.text();
 }
 
 /**
