@@ -4,7 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { File, Folder, FolderOpen } from "lucide-react";
 
 import { ObjectActionsMenu } from "@/components/explorer/object-actions-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import {
   hasFileExtension,
   isImageFile,
@@ -22,6 +24,8 @@ interface ObjectsGalleryProps {
   onPreview: (item: ObjectItem) => void;
   onRename: (item: ObjectItem) => void;
   onDelete: (item: ObjectItem) => void;
+  selectedKeys: ReadonlySet<string>;
+  onToggleSelect: (item: ObjectItem, checked: boolean) => void;
 }
 
 interface GalleryCardProps {
@@ -30,6 +34,8 @@ interface GalleryCardProps {
   onPreview: (item: ObjectItem) => void;
   onRename: (item: ObjectItem) => void;
   onDelete: (item: ObjectItem) => void;
+  selected: boolean;
+  onToggleSelect: (item: ObjectItem, checked: boolean) => void;
 }
 
 function GalleryCard({
@@ -38,6 +44,8 @@ function GalleryCard({
   onPreview,
   onRename,
   onDelete,
+  selected,
+  onToggleSelect,
 }: GalleryCardProps) {
   const isImageByExtension = item.type === "file" && isImageFile(item.name);
 
@@ -95,6 +103,24 @@ function GalleryCard({
           <p className="truncate text-left text-xs font-medium">{item.name}</p>
         </div>
       </button>
+      {item.type === "file" && (
+        <div
+          className={cn(
+            "absolute left-2 top-2 transition-opacity",
+            selected
+              ? "opacity-100"
+              : "opacity-0 group-hover:opacity-100 focus-within:opacity-100",
+          )}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <Checkbox
+            checked={selected}
+            onCheckedChange={(checked) => onToggleSelect(item, checked)}
+            aria-label={`Select ${item.name}`}
+            className="size-5 border-0 bg-background/90 shadow backdrop-blur data-checked:bg-primary"
+          />
+        </div>
+      )}
       <ObjectActionsMenu
         item={item}
         onRename={onRename}
@@ -114,6 +140,8 @@ export function ObjectsGallery({
   onPreview,
   onRename,
   onDelete,
+  selectedKeys,
+  onToggleSelect,
 }: ObjectsGalleryProps) {
   const sorted = items ?? [];
 
@@ -166,6 +194,8 @@ export function ObjectsGallery({
           onPreview={onPreview}
           onRename={onRename}
           onDelete={onDelete}
+          selected={selectedKeys.has(item.key)}
+          onToggleSelect={onToggleSelect}
         />
       ))}
     </div>

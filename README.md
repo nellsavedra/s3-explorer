@@ -2,8 +2,10 @@
 
 A small internal web app to explore an S3 bucket: browse folders, upload,
 download, rename and delete objects. It has a list view and a gallery view
-(1:1 thumbnails with image preview), sorting (name/date/size) and pagination
-("Load more" over S3 continuation tokens). Images without a file extension are
+(1:1 thumbnails with image preview), sorting (name/date/size), pagination
+("Load more" over S3 continuation tokens), server-side filename search and
+bulk download (multi-select files and get a single ZIP, streamed from S3
+without recompression). Images without a file extension are
 detected by sniffing their magic bytes (`GET /api/objects/sniff`, a 512-byte
 range request), so they preview correctly too. The UI is 100% client-side;
 all S3 operations go through Next.js API route handlers, so credentials never
@@ -38,6 +40,13 @@ Copy `.env.example` to `.env.local` and fill it in:
 
 Branding is applied **at runtime** via `GET /api/config`: the same build can
 serve different brands by changing env vars, no rebuild needed.
+
+## Search
+
+S3 has no substring-search API (only prefix filtering), so
+`GET /api/objects/search` lists keys recursively under the current prefix
+and filters **server-side** — nothing is filtered in the browser. Scans are
+capped at 50k keys and 200 results per query.
 
 ## IAM permissions
 

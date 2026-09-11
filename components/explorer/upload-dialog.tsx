@@ -92,6 +92,7 @@ export function UploadDialog({ open, onOpenChange, prefix }: UploadDialogProps) 
     }
     setUploading(false);
     queryClient.invalidateQueries({ queryKey: ["objects"] });
+    queryClient.invalidateQueries({ queryKey: ["search"] });
     if (failed === 0) {
       toast.success(succeeded === 1 ? "File uploaded" : `${succeeded} files uploaded`);
       reset();

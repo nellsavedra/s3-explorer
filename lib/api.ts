@@ -13,6 +13,8 @@ export interface ObjectItem {
   type: "folder" | "file";
   size: number;
   lastModified: string | null;
+  /** Folder path relative to the searched prefix (search results only). */
+  folder?: string;
 }
 
 export interface ListObjectsResponse {
@@ -61,6 +63,23 @@ export async function fetchObjects(
   return response.json();
 }
 
+export interface SearchObjectsResponse {
+  items: ObjectItem[];
+  scanned: number;
+  truncated: boolean;
+}
+
+/** Server-side substring search across the keys under a prefix. */
+export async function searchObjects(
+  prefix: string,
+  query: string,
+): Promise<SearchObjectsResponse> {
+  const params = new URLSearchParams({ prefix, q: query });
+  const response = await fetch(`/api/objects/search?${params}`);
+  await throwIfNotOk(response);
+  return response.json();
+}
+
 export async function deleteObject(key: string): Promise<void> {
   const response = await fetch(`/api/objects?key=${encodeURIComponent(key)}`, {
     method: "DELETE",
@@ -99,6 +118,31 @@ export function previewUrl(key: string): string {
 export function assetUrl(cdnBaseUrl: string, key: string): string {
   const path = key.split("/").map(encodeURIComponent).join("/");
   return `${cdnBaseUrl}/${path}`;
+}
+
+/**
+ * Downloads the given keys as a single ZIP. The browser receives the file
+ * via an object URL, so the whole ZIP is held in memory — fine for typical
+ * asset batches on an internal network.
+ */
+export async function downloadZip(
+  keys: string[],
+  basePrefix: string,
+  filename: string,
+): Promise<void> {
+  const response = await fetch("/api/objects/download-zip", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ keys, basePrefix }),
+  });
+  await throwIfNotOk(response);
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 const IMAGE_EXTENSIONS = new Set([

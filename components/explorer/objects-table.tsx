@@ -4,6 +4,7 @@ import { File, Folder, FolderOpen } from "lucide-react";
 
 import { ObjectActionsMenu } from "@/components/explorer/object-actions-menu";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -25,6 +26,11 @@ interface ObjectsTableProps {
   onPreview: (item: ObjectItem) => void;
   onRename: (item: ObjectItem) => void;
   onDelete: (item: ObjectItem) => void;
+  selectedKeys: ReadonlySet<string>;
+  onToggleSelect: (item: ObjectItem, checked: boolean) => void;
+  onToggleSelectAll: (checked: boolean) => void;
+  /** Shows the folder path under the name (used for search results). */
+  showFolder?: boolean;
 }
 
 export function ObjectsTable({
@@ -36,14 +42,30 @@ export function ObjectsTable({
   onPreview,
   onRename,
   onDelete,
+  selectedKeys,
+  onToggleSelect,
+  onToggleSelectAll,
+  showFolder,
 }: ObjectsTableProps) {
   const sorted = items ?? [];
+  const files = sorted.filter((item) => item.type === "file");
+  const selectedCount = files.filter((f) => selectedKeys.has(f.key)).length;
+  const allSelected = files.length > 0 && selectedCount === files.length;
+  const someSelected = selectedCount > 0 && !allSelected;
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
+            <TableHead className="w-10 pl-3">
+              <Checkbox
+                checked={allSelected}
+                indeterminate={someSelected}
+                onCheckedChange={(checked) => onToggleSelectAll(checked)}
+                aria-label="Select all files"
+              />
+            </TableHead>
             <TableHead className="w-full text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Name
             </TableHead>
@@ -60,6 +82,7 @@ export function ObjectsTable({
           {loading &&
             Array.from({ length: 5 }).map((_, i) => (
               <TableRow key={i}>
+                <TableCell className="pl-3" />
                 <TableCell>
                   <Skeleton className="h-4 w-56" />
                 </TableCell>
@@ -75,7 +98,7 @@ export function ObjectsTable({
 
           {!loading && error && (
             <TableRow>
-              <TableCell colSpan={4} className="py-10 text-center">
+              <TableCell colSpan={5} className="py-10 text-center">
                 <p className="text-sm text-destructive">
                   {error instanceof Error
                     ? error.message
@@ -95,7 +118,7 @@ export function ObjectsTable({
 
           {!loading && !error && sorted.length === 0 && (
             <TableRow>
-              <TableCell colSpan={4} className="py-14">
+              <TableCell colSpan={5} className="py-14">
                 <div className="flex flex-col items-center gap-2 text-center">
                   <FolderOpen className="size-8 text-muted-foreground/40" />
                   <p className="text-sm font-medium">This folder is empty</p>
@@ -115,8 +138,21 @@ export function ObjectsTable({
                 onClick={() =>
                   item.type === "folder" ? onOpenFolder(item) : onPreview(item)
                 }
-                className="cursor-pointer"
+                data-selected={selectedKeys.has(item.key) || undefined}
+                className="cursor-pointer data-selected:bg-primary/5"
               >
+                <TableCell
+                  className="pl-3"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  {item.type === "file" && (
+                    <Checkbox
+                      checked={selectedKeys.has(item.key)}
+                      onCheckedChange={(checked) => onToggleSelect(item, checked)}
+                      aria-label={`Select ${item.name}`}
+                    />
+                  )}
+                </TableCell>
                 <TableCell>
                   <span className="inline-flex max-w-full items-center gap-2">
                     {item.type === "folder" ? (
@@ -124,7 +160,16 @@ export function ObjectsTable({
                     ) : (
                       <File className="size-4 shrink-0 text-muted-foreground" />
                     )}
-                    <span className="truncate font-medium">{item.name}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">
+                        {item.name}
+                      </span>
+                      {showFolder && item.folder && (
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {item.folder}
+                        </span>
+                      )}
+                    </span>
                   </span>
                 </TableCell>
                 <TableCell className="text-muted-foreground">

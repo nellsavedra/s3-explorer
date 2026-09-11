@@ -33,6 +33,7 @@ export function NewFolderDialog({
     onSuccess: () => {
       toast.success("Folder created");
       queryClient.invalidateQueries({ queryKey: ["objects"] });
+      queryClient.invalidateQueries({ queryKey: ["search"] });
       onOpenChange(false);
     },
     onError: (error) =>

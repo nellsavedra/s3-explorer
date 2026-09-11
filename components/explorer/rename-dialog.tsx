@@ -29,6 +29,7 @@ export function RenameDialog({ item, onClose }: RenameDialogProps) {
     onSuccess: () => {
       toast.success("File renamed");
       queryClient.invalidateQueries({ queryKey: ["objects"] });
+      queryClient.invalidateQueries({ queryKey: ["search"] });
       onClose();
     },
     onError: (error) =>

@@ -29,6 +29,7 @@ export function DeleteDialog({ item, onClose }: DeleteDialogProps) {
         item?.type === "folder" ? "Folder deleted" : "File deleted",
       );
       queryClient.invalidateQueries({ queryKey: ["objects"] });
+      queryClient.invalidateQueries({ queryKey: ["search"] });
       onClose();
     },
     onError: (error) =>
