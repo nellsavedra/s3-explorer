@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, File, Link2, X } from "lucide-react";
+import { Download, ExternalLink, File, Link2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -68,6 +68,24 @@ function Lightbox({ item, onClose }: { item: ObjectItem; onClose: () => void }) 
           <p className="truncate text-sm font-medium">{item.name}</p>
           <p className="text-xs text-white/60">{formatBytes(item.size)}</p>
         </div>
+        {cdnBaseUrl && (
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={
+              <a
+                href={assetUrl(cdnBaseUrl, item.key)}
+                target="_blank"
+                rel="noreferrer"
+              />
+            }
+            className="text-white hover:bg-white/10 hover:text-white"
+          >
+            <ExternalLink />
+            Open
+          </Button>
+        )}
         {cdnBaseUrl && (
           <Button
             variant="ghost"
