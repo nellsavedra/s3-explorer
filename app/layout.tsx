@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   // Replaced at runtime by the whitelabel config (see hooks/use-config.ts).
   title: "S3 Explorer",
-  description: "Whitelabel S3 bucket explorer",
+  description: "Browse, upload, download and manage files.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
