@@ -1,10 +1,11 @@
 "use client";
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Download, X } from "lucide-react";
+import { Download, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
+import { BulkDeleteDialog } from "@/components/explorer/bulk-delete-dialog";
 import { DeleteDialog } from "@/components/explorer/delete-dialog";
 import { PreviewDialog } from "@/components/explorer/preview-dialog";
 import { NewFolderDialog } from "@/components/explorer/new-folder-dialog";
@@ -105,6 +106,7 @@ export function Explorer() {
     new Set(),
   );
   const [bulkDownloading, setBulkDownloading] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
@@ -319,6 +321,14 @@ export function Explorer() {
             {bulkDownloading ? "Preparing…" : "Download ZIP"}
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setBulkDeleteOpen(true)}
+          >
+            <Trash2 />
+            Delete
+          </Button>
+          <Button
             variant="ghost"
             size="icon-sm"
             aria-label="Clear selection"
@@ -341,6 +351,13 @@ export function Explorer() {
       />
       <RenameDialog item={renameTarget} onClose={() => setRenameTarget(null)} />
       <DeleteDialog item={deleteTarget} onClose={() => setDeleteTarget(null)} />
+      {bulkDeleteOpen && selectedFiles.length > 0 && (
+        <BulkDeleteDialog
+          keys={selectedFiles.map((file) => file.key)}
+          onClose={() => setBulkDeleteOpen(false)}
+          onDeleted={() => setSelectedKeys(new Set())}
+        />
+      )}
       <PreviewDialog
         item={previewTarget}
         onClose={() => setPreviewTarget(null)}

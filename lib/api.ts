@@ -87,6 +87,23 @@ export async function deleteObject(key: string): Promise<void> {
   await throwIfNotOk(response);
 }
 
+export interface BulkDeleteResponse {
+  deleted: number;
+  failed: number;
+}
+
+export async function bulkDelete(
+  keys: string[],
+): Promise<BulkDeleteResponse> {
+  const response = await fetch("/api/objects/bulk-delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ keys }),
+  });
+  await throwIfNotOk(response);
+  return response.json();
+}
+
 export async function renameObject(source: string, newName: string): Promise<void> {
   const response = await fetch("/api/objects/rename", {
     method: "POST",
