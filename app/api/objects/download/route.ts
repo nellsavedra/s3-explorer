@@ -28,9 +28,12 @@ export async function GET(request: NextRequest) {
     const name = key.split("/").pop() ?? "download";
     const stream = Readable.toWeb(output.Body as Readable);
 
+    // Header values must be Latin-1, so the quoted filename= is an
+    // ASCII-safe fallback and the real name travels in filename*.
+    const asciiName = name.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "");
     const headers = new Headers({
       "Content-Type": output.ContentType ?? "application/octet-stream",
-      "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="${name.replace(/"/g, "")}"; filename*=UTF-8''${encodeURIComponent(name)}`,
+      "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(name)}`,
       "Cache-Control": inline ? "private, max-age=3600" : "no-store",
     });
     if (output.ContentLength != null) {
