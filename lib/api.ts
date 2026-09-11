@@ -194,6 +194,7 @@ const TEXT_EXTENSIONS = new Set([
   "ini",
   "cfg",
   "conf",
+  "sh",
   "srt",
   "vtt",
 ]);
